@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Controls;
+using ZeroLimits.Regainet.Retrieval;
 
 namespace SynthesisRecipeRetriever.Classes
 {
@@ -25,9 +26,9 @@ namespace SynthesisRecipeRetriever.Classes
         private HtmlDocument _document = new HtmlDocument();
 
         /// <summary>
-        /// Provides singleton access to this class. 
+        /// Object that get us the html code. 
         /// </summary>
-        private Retriever _retriever = Retriever.GetInstance();
+        private Retriever _retriever = new Retriever();
 
         /// <summary>
         /// The name our current document is bound to. 
@@ -66,7 +67,7 @@ namespace SynthesisRecipeRetriever.Classes
 
             if (table == null) return new List<Recipe>();
 
-            var idNodes = this.GetHtmlNodes(XPaths.ID_PATH).Descendants().Where(x => x.Name == "a").ToArray();
+            var idNodes = this.GetHtmlNodes(XPaths.ID_PATH).ToArray();
 
             var materialNodes = this.GetHtmlNodes(XPaths.MATERIALS_PATH);
 
@@ -78,10 +79,12 @@ namespace SynthesisRecipeRetriever.Classes
 
             List<Recipe> RecipeList = new List<Recipe>();
 
-            for (int i = 0; i < idNodes.Length; i++)
+            var count = Min(idNodes.Length, materialNodes.Count, recipeSkillNodes.Count, resultNodes.Count, skillNodes.Length);
+
+            for (int i = 0; i < count; i++)
             {
                 var id = GetID(idNodes[i]);
-                var name = resultNodes[i].Descendants().First().InnerText;
+                var name = resultNodes[i].InnerText;
                 var quantity = GetQuantity(resultNodes[i].InnerText);
                 var materials = GetCraftMaterials(materialNodes[i]);
                 var skills = GetCraftSkill(skillNodes[i]);
@@ -90,6 +93,18 @@ namespace SynthesisRecipeRetriever.Classes
             }
 
             return RecipeList;
+        }
+
+        private int Min(params int[] values)
+        {
+            int min = values[0];
+
+            for (int i = 1; i < values.Length; i++)
+            {
+                if (min > values[i]) min = values[i];
+            }
+
+            return min;
         }
 
         private int GetID(HtmlNode htmlNode)
